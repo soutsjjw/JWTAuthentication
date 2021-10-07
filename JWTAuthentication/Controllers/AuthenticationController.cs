@@ -68,7 +68,8 @@ namespace JWTAuthentication.Controllers
                 return Unauthorized();
             }
 
-            return Ok(new { Token = await _authManager.CreateToken() });
+            // return Ok(new { Token = await _authManager.CreateToken() });
+            return Ok(await _authManager.CreateToken());
         }
     }
 }

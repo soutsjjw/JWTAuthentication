@@ -23,6 +23,8 @@ namespace JWTAuthentication
             builder.ApplyConfiguration(new RoleConfiguration());
         }
 
+        public virtual DbSet<RefreshToken> RefreshTokens { get; set; }
+
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             optionsBuilder.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);

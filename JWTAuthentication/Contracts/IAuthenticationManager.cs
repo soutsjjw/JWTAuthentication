@@ -1,4 +1,5 @@
-﻿using JWTAuthentication.Models.DataTransferObjects;
+﻿using JWTAuthentication.Models;
+using JWTAuthentication.Models.DataTransferObjects;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,6 +10,6 @@ namespace JWTAuthentication.Contracts
     public interface IAuthenticationManager
     {
         Task<bool> ValidateUser(UserForAuthenticationDto userForAuth);
-        Task<string> CreateToken();
+        Task<AuthResult> CreateToken();
     }
 }

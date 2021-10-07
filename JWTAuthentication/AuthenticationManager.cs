@@ -7,6 +7,7 @@ using Microsoft.IdentityModel.Tokens;
 using System;
 using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
+using System.Linq;
 using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
@@ -17,13 +18,15 @@ namespace JWTAuthentication
     {
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IConfiguration _configuration;
+        private readonly ApplicationDbContext _dbContext;
 
         private ApplicationUser _user;
 
-        public AuthenticationManager(UserManager<ApplicationUser> userManager, IConfiguration configuration)
+        public AuthenticationManager(UserManager<ApplicationUser> userManager, IConfiguration configuration, ApplicationDbContext dbContex)
         {
             _userManager = userManager;
             _configuration = configuration;
+            _dbContext = dbContex;
         }
 
         public async Task<bool> ValidateUser(UserForAuthenticationDto userForAuth)
@@ -33,13 +36,34 @@ namespace JWTAuthentication
             return (_user != null && await _userManager.CheckPasswordAsync(_user, userForAuth.Password));
         }
 
-        public async Task<string> CreateToken()
+        public async Task<AuthResult> CreateToken()
         {
             var signingCredentials = GetSigningCredentials();
             var claims = await GetClaims();
             var tokenOptions = GenerateTokenOptions(signingCredentials, claims);
+            var jwtTokenHandler = new JwtSecurityTokenHandler();
+            var jwtToken = jwtTokenHandler.WriteToken(tokenOptions);
 
-            return new JwtSecurityTokenHandler().WriteToken(tokenOptions);
+            var refreshToken = new RefreshToken()
+            {
+                JwtId = tokenOptions.Id,
+                IsUsed = false,
+                IsRevorked = false,
+                UserId = _user.Id,
+                AddedDate = DateTime.UtcNow,
+                ExpiryDate = DateTime.UtcNow.AddMonths(6),
+                Token = RandomString(35) + Guid.NewGuid()
+            };
+
+            await _dbContext.RefreshTokens.AddAsync(refreshToken);
+            await _dbContext.SaveChangesAsync();
+
+            return new AuthResult()
+            {
+                Token = jwtToken,
+                Success = true,
+                RefreshToken = refreshToken.Token
+            };
         }
 
         private SigningCredentials GetSigningCredentials()
@@ -82,6 +106,14 @@ namespace JWTAuthentication
             );
 
             return tokenOptions;
+        }
+
+        private string RandomString(int length)
+        {
+            var random = new Random();
+            var chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            return new string(Enumerable.Repeat(chars, length)
+                .Select(x => x[random.Next(x.Length)]).ToArray());
         }
     }
 }
