@@ -5,12 +5,13 @@ namespace JWTAuthentication.Models.DataTransferObjects
     public class TokenRequestDto
     {
         /// <summary>
-        /// 原 Token
+        /// 原令牌
         /// </summary>
         [Required]
         public string Token { get; set; }
+
         /// <summary>
-        /// Refresh Token
+        /// 刷新令牌
         /// </summary>
         [Required]
         public string RefreshToken { get; set; }

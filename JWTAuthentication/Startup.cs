@@ -11,6 +11,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System;
 using System.Collections.Generic;
@@ -50,7 +51,7 @@ namespace JWTAuthentication
                 {
                     In = ParameterLocation.Header,
                     Description = "加入帶有 Bearer 的 JWT",
-                    Name = "授權",
+                    Name = "Authorization",
                     Type = SecuritySchemeType.ApiKey,
                     Scheme = "Bearer"
                 });
@@ -74,7 +75,24 @@ namespace JWTAuthentication
 
             services.AddAuthentication();
             services.ConfigureIdentity();
-            services.ConfigureJWT(Configuration);
+
+            var jwtSettings = Configuration.GetSection("JwtSettings").Get<JwtSettings>();
+            // var secretKey = Environment.GetEnvironmentVariable("SECRET");
+            var tokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateLifetime = true,
+                ValidateIssuerSigningKey = true,
+
+                ValidIssuer = jwtSettings.Issuer,
+                ValidAudience = jwtSettings.Audience,
+                IssuerSigningKey = new SymmetricSecurityKey(System.Text.Encoding.ASCII.GetBytes(jwtSettings.SecretKey)),
+                // IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey))
+            };
+            services.AddSingleton(tokenValidationParameters);
+
+            services.ConfigureJWT(Configuration, tokenValidationParameters);
 
             services.AddAutoMapper(typeof(Startup));
 

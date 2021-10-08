@@ -37,7 +37,7 @@ namespace JWTAuthentication.Extensions
             builder.AddEntityFrameworkStores<ApplicationDbContext>().AddDefaultTokenProviders();
         }
 
-        public static void ConfigureJWT(this IServiceCollection services, IConfiguration configuration)
+        public static void ConfigureJWT(this IServiceCollection services, IConfiguration configuration, TokenValidationParameters tokenValidationParameters)
         {
             services.Configure<JwtSettings>(configuration.GetSection("JwtSettings"));
             var jwtSettings = configuration.GetSection("JwtSettings").Get<JwtSettings>();
@@ -50,18 +50,8 @@ namespace JWTAuthentication.Extensions
             })
             .AddJwtBearer(options =>
             {
-                options.TokenValidationParameters = new TokenValidationParameters
-                {
-                    ValidateIssuer = true,
-                    ValidateAudience = true,
-                    ValidateLifetime = true,
-                    ValidateIssuerSigningKey = true,
-
-                    ValidIssuer = jwtSettings.Issuer,
-                    ValidAudience = jwtSettings.Audience,
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(jwtSettings.SecretKey)),
-                    // IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey))
-                };
+                options.SaveToken = true;
+                options.TokenValidationParameters = tokenValidationParameters;
             });
         }
     }

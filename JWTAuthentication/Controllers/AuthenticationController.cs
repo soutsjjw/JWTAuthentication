@@ -4,9 +4,8 @@ using JWTAuthentication.Models;
 using JWTAuthentication.Models.DataTransferObjects;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using System;
+using Microsoft.IdentityModel.Tokens;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 
 namespace JWTAuthentication.Controllers
@@ -20,7 +19,8 @@ namespace JWTAuthentication.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IAuthenticationManager _authManager;
 
-        public AuthenticationController(ILoggerManager logger, IMapper mapper, UserManager<ApplicationUser> userManager, IAuthenticationManager authManager)
+        public AuthenticationController(ILoggerManager logger, IMapper mapper, UserManager<ApplicationUser> userManager,
+            IAuthenticationManager authManager)
         {
             _logger = logger;
             _mapper = mapper;
@@ -68,8 +68,43 @@ namespace JWTAuthentication.Controllers
                 return Unauthorized();
             }
 
-            // return Ok(new { Token = await _authManager.CreateToken() });
             return Ok(await _authManager.CreateToken());
+        }
+
+        [HttpPost("refreshtoken")]
+        public async Task<IActionResult> RefreshToken([FromBody] TokenRequestDto tokenRequest)
+        {
+            if (ModelState.IsValid)
+            {
+                var result = await _authManager.VerifyAndGenerateToken(tokenRequest);
+
+                if (result == null)
+                {
+                    _logger.LogWarn($"{nameof(RefreshToken)}: 無效的令牌。");
+
+                    return BadRequest(new RegistrationResponse()
+                    {
+                        Errors = new List<string>()
+                        {
+                            "無效的令牌"
+                        },
+                        Success = false
+                    });
+                }
+
+                return Ok(result);
+            }
+
+            _logger.LogWarn($"{nameof(RefreshToken)}: 無效的參數。");
+
+            return BadRequest(new RegistrationResponse()
+            {
+                Errors = new List<string>()
+                {
+                    "無效的參數"
+                },
+                Success = false
+            });
         }
     }
 }
